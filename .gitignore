@@ -1,0 +1,66 @@
+# =========================
+# General
+# =========================
+*.log
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+.env
+.DS_Store
+
+# =========================
+# Python / Backend
+# =========================
+venv/
+myvenv/
+env/
+*.egg-info/
+temp_snapshots/
+temp_videos/
+*.mp4
+*.pt
+*.pth
+Output/
+Input/
+*.pickle
+*.h5
+
+# =========================
+# Node / React Frontend
+# =========================
+frontend/node_modules/
+frontend/.env
+frontend/build/
+frontend/dist/
+frontend/.next/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
+
+# =========================
+# IDE / OS Files
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+
+# =========================
+# Custom Project Files
+# =========================
+# Ignore temporary test or model folders
+mod/__pycache__/
+mod/Input/
+mod/Output/
+mod/*.pt
+mod/*.pth
+backend/__pycache__/
+backend/temp_*.mp4
+backend/*.pt
+backend/*.pth
