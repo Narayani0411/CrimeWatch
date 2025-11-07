@@ -1,22 +1,26 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
 
-# Schema for incoming request data (Signup/Signin)
+# --- Signup schema ---
 class UserCreate(BaseModel):
+    full_name: str
+    username: str
     email: EmailStr
     password: str
 
-# Schema for the data we return on a successful API call
+# --- Signin schema ---
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
 class UserOut(BaseModel):
-    # Use str for the MongoDB _id
-    id: str 
+    id: str
+    full_name: str
+    username: str
     email: EmailStr
 
     class Config:
-        # Necessary for Pydantic to handle MongoDB's object representation
         from_attributes = True
 
-# Schema for the JWT Token we return
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"

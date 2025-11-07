@@ -1,40 +1,27 @@
-# server.py
-import os
-import io
-import base64
-import datetime
-from collections import defaultdict, deque
-from typing import List
+# backend/main.py
 
-import uvicorn
+import os
+import datetime
 import torch
 import numpy as np
 import cv2
+from collections import defaultdict, deque
 from PIL import Image
 from torchvision import transforms
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import UploadFile, File, Form
 from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition
-
-from ultralytics import YOLO
 from pymongo import MongoClient
+from dotenv import load_dotenv
+from ultralytics import YOLO
 
-# --- NEW AUTH IMPORTS ---
-from .auth_router import router as auth_router, get_current_user
-from .auth_schemas import UserOut
-# ------------------------
-
-# --- import your CNN_LSTM model ---
 from .models import CNN_LSTM
 
 # =====================================================
 # CONFIG
 # =====================================================
 load_dotenv()
-
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 ALERT_EMAIL = os.getenv("ALERT_EMAIL")
 SENDER_EMAIL = os.getenv("SENDER_EMAIL")
@@ -42,16 +29,22 @@ MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 
 MODEL_WEAPON_PATH = "backend\\best.pt"
 MODEL_VIOLENCE_PATH = "backend\\cnn_lstm.pth"
-TEMP_DIR = "temp_snapshots"
+TEMP_DIR = "backend\\temp_snapshots"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
 SEQ_LEN = int(os.getenv("SEQ_LEN", "16"))
 
 # =====================================================
-# DEVICE + TRANSFORMS
+# DATABASE
+# =====================================================
+client = MongoClient(MONGODB_URI)
+db = client["crimewatch"]
+alerts_collection = db["alerts"]
+
+# =====================================================
+# MODELS
 # =====================================================
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
@@ -59,54 +52,22 @@ transform = transforms.Compose([
                          [0.229, 0.224, 0.225])
 ])
 
-# =====================================================
-# MODEL LOADING
-# =====================================================
 print("🔁 Loading models...")
 weapon_model = YOLO(MODEL_WEAPON_PATH)
 
 violence_model = CNN_LSTM()
 violence_state = torch.load(MODEL_VIOLENCE_PATH, map_location=device)
-
-# Clean up state dict
-if isinstance(violence_state, dict) and any(k.startswith("module") or k.endswith("state_dict") for k in violence_state.keys()):
-    v_state = violence_state.get("state_dict", violence_state)
-else:
-    v_state = violence_state
-
-clean_state = {k.replace("module.", ""): v for k, v in v_state.items()}
+clean_state = {k.replace("module.", ""): v for k, v in violence_state.items()}
 violence_model.load_state_dict(clean_state)
 violence_model.to(device)
 violence_model.eval()
 print("✅ Models loaded successfully.")
 
 # =====================================================
-# DATABASE & FASTAPI
-# =====================================================
-client = MongoClient(MONGODB_URI)
-db = client["crimewatch"]
-alerts_collection = db["alerts"]
-
-app = FastAPI(title="CrimeWatch AI Server")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(auth_router)
-
-# =====================================================
-# GLOBAL BUFFERS
+# HELPERS
 # =====================================================
 frame_buffers = defaultdict(lambda: deque(maxlen=SEQ_LEN))
 
-# =====================================================
-# HELPER FUNCTIONS
-# =====================================================
 def pil_from_bgr(bgr):
     rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
     return Image.fromarray(rgb)
@@ -131,7 +92,7 @@ def detect_weapons_in_frame(frame, conf_threshold=0.5):
         weapon_boxes = []
         if boxes is not None and len(boxes) > 0:
             for box, cls in zip(boxes.xyxy, boxes.cls):
-                if int(cls) == 0:  # assuming class 0 is weapon
+                if int(cls) == 0:
                     x1, y1, x2, y2 = map(int, box.tolist())
                     weapon_boxes.append([x1, y1, x2, y2])
         return weapon_boxes
@@ -141,7 +102,7 @@ def detect_weapons_in_frame(frame, conf_threshold=0.5):
 
 def send_email_alert(location: str, dt: str, file_path: str, danger_label: str):
     if not SENDGRID_API_KEY or not ALERT_EMAIL or not SENDER_EMAIL:
-        print("⚠️ SendGrid or email config missing.")
+        print("⚠️ SendGrid config missing.")
         return {"status": "disabled"}
 
     with open(file_path, "rb") as f:
@@ -172,13 +133,10 @@ def send_email_alert(location: str, dt: str, file_path: str, danger_label: str):
         return {"status": "error", "message": str(e)}
 
 # =====================================================
-# API ENDPOINTS
+# ENDPOINT FUNCTIONS
 # =====================================================
-@app.post("/upload-frame/")
 async def upload_frame(frame: UploadFile = File(...), camera_id: str = Form("camera_01")):
-    """
-    Upload a single frame, run detection, log alert.
-    """
+    """Upload a single frame for analysis"""
     content = await frame.read()
     nparr = np.frombuffer(content, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -188,22 +146,18 @@ async def upload_frame(frame: UploadFile = File(...), camera_id: str = Form("cam
     dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     location = camera_id
 
-    # 1️⃣ Weapon detection
     weapon_boxes = detect_weapons_in_frame(img)
     weapon_detected = len(weapon_boxes) > 0
 
-    # 2️⃣ Violence detection
     buf = frame_buffers[camera_id]
     buf.append(img.copy())
     violence_label, violence_prob = ("NotEnoughFrames", 0.0)
     if len(buf) == SEQ_LEN:
         violence_label, violence_prob = predict_violence_from_buffer(buf)
 
-    violence_detected = violence_label == "Violence"
-    danger = weapon_detected or violence_detected
+    danger = weapon_detected or violence_label == "Violence"
     danger_label = "Violence/Weapon" if danger else "Safe"
 
-    # 3️⃣ Save snapshot (local only)
     snapshot_path = None
     email_status = {"status": "none"}
     if danger:
@@ -212,8 +166,7 @@ async def upload_frame(frame: UploadFile = File(...), camera_id: str = Form("cam
         cv2.imwrite(snapshot_path, img)
         email_status = send_email_alert(location, dt, snapshot_path, danger_label)
 
-    # 4️⃣ Log to MongoDB
-    alert_doc = {
+    alerts_collection.insert_one({
         "timestamp": dt,
         "camera_id": camera_id,
         "danger_status": danger_label,
@@ -222,31 +175,20 @@ async def upload_frame(frame: UploadFile = File(...), camera_id: str = Form("cam
         "weapon_detected": weapon_detected,
         "snapshot_path": snapshot_path,
         "email_status": email_status,
-    }
-    alerts_collection.insert_one(alert_doc)
+    })
 
-    return {"message": "Frame processed", "danger": danger, "timestamp": dt, "status": danger_label}
+    return {"message": "Frame processed", "status": danger_label}
 
-@app.get("/alerts/")
 def get_alerts(limit: int = 20):
-    """
-    Return only timestamps and essential info for alert page.
-    """
-    docs = list(alerts_collection.find({}, {"timestamp": 1, "camera_id": 1, "danger_status": 1, "_id": 0})
-                .sort("timestamp", -1)
-                .limit(limit))
+    docs = list(
+        alerts_collection.find({}, {"timestamp": 1, "camera_id": 1, "danger_status": 1, "_id": 0})
+        .sort("timestamp", -1)
+        .limit(limit)
+    )
     return {"alerts": docs}
 
-@app.get("/snapshot/{filename}")
 def get_snapshot(filename: str):
     path = os.path.join(TEMP_DIR, filename)
     if not os.path.exists(path):
         return {"error": "File not found."}
     return FileResponse(path, media_type="image/png")
-
-# =====================================================
-# MAIN
-# =====================================================
-if __name__ == "__main__":
-    print("🚀 Starting CrimeWatch AI backend at http://0.0.0.0:8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000)

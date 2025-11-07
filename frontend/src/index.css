@@ -1,9 +1,100 @@
-/* src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* smooth font rendering */
+/* =======================================================
+   🌍 Global Setup
+======================================================= */
 html {
   scroll-behavior: smooth;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  color: var(--text-color);
+  transition: background 0.8s ease, color 0.4s ease;
+}
+
+/* =======================================================
+   🌞 Pastel Light Background
+======================================================= */
+body:not(.dark),
+#root:not(.dark) {
+  background: linear-gradient(135deg, #fef6fb 0%, #f3f6ff 45%, #e8faff 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* =======================================================
+   🌙 Deep Grayish Blue Dark Background
+======================================================= */
+.dark body,
+.dark #root {
+  background: linear-gradient(135deg, #0e0e12 0%, #141418 45%, #1a1a1f 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* =======================================================
+   🌟 Navbar and Links
+======================================================= */
+.navbar {
+  transition: background 0.4s ease, border-color 0.4s ease;
+  border-bottom: 2px solid var(--accent);
+}
+
+.nav-link {
+  color: var(--text-color);
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: var(--link-hover);
+}
+
+/* =======================================================
+   🕹️ Theme Toggle Button
+======================================================= */
+.theme-btn {
+  background-color: var(--accent);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  transition: background-color 0.4s ease, transform 0.2s ease;
+}
+
+.theme-btn:hover {
+  background-color: var(--accent-hover);
+  transform: scale(1.05);
+}
+
+/* =======================================================
+   🎞️ Floating Animation
+======================================================= */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: float 3.5s ease-in-out infinite;
+}
+
+/* =======================================================
+   ✨ Smooth fade on content load
+======================================================= */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.8s ease-in-out;
 }
