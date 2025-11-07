@@ -22,8 +22,13 @@ from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileT
 from ultralytics import YOLO
 from pymongo import MongoClient
 
+# --- NEW AUTH IMPORTS ---
+from .auth_router import router as auth_router, get_current_user
+from .auth_schemas import UserOut
+# ------------------------
+
 # --- import your CNN_LSTM model ---
-from models import CNN_LSTM
+from .models import CNN_LSTM
 
 # =====================================================
 # CONFIG
@@ -35,12 +40,11 @@ ALERT_EMAIL = os.getenv("ALERT_EMAIL")
 SENDER_EMAIL = os.getenv("SENDER_EMAIL")
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 
-MODEL_WEAPON_PATH = "best.pt"
-MODEL_VIOLENCE_PATH = "cnn_lstm.pth"
+MODEL_WEAPON_PATH = "backend\\best.pt"
+MODEL_VIOLENCE_PATH = "backend\\cnn_lstm.pth"
 TEMP_DIR = "temp_snapshots"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
-ALERT_COOLDOWN = int(os.getenv("ALERT_COOLDOWN", "60"))  # seconds
 SEQ_LEN = int(os.getenv("SEQ_LEN", "16"))
 
 # =====================================================
@@ -87,17 +91,18 @@ app = FastAPI(title="CrimeWatch AI Server")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
+
 # =====================================================
 # GLOBAL BUFFERS
 # =====================================================
 frame_buffers = defaultdict(lambda: deque(maxlen=SEQ_LEN))
-last_alert_time = None
 
 # =====================================================
 # HELPER FUNCTIONS
@@ -166,15 +171,6 @@ def send_email_alert(location: str, dt: str, file_path: str, danger_label: str):
         print("Email error:", e)
         return {"status": "error", "message": str(e)}
 
-def send_email_if_cooldown(location: str, dt: str, file_path: str, danger_label: str):
-    global last_alert_time
-    now = datetime.datetime.now()
-    if last_alert_time and (now - last_alert_time).total_seconds() < ALERT_COOLDOWN:
-        print("Skipping email due to cooldown")
-        return {"status": "skipped_cooldown"}
-    last_alert_time = now
-    return send_email_alert(location, dt, file_path, danger_label)
-
 # =====================================================
 # API ENDPOINTS
 # =====================================================
@@ -214,7 +210,7 @@ async def upload_frame(frame: UploadFile = File(...), camera_id: str = Form("cam
         basename = f"alert_{camera_id}_{int(datetime.datetime.now().timestamp())}.png"
         snapshot_path = os.path.join(TEMP_DIR, basename)
         cv2.imwrite(snapshot_path, img)
-        email_status = send_email_if_cooldown(location, dt, snapshot_path, danger_label)
+        email_status = send_email_alert(location, dt, snapshot_path, danger_label)
 
     # 4️⃣ Log to MongoDB
     alert_doc = {

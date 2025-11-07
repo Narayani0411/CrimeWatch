@@ -8,5 +8,9 @@ pymongo
 sendgrid
 python-multipart
 ultralytics
-sendgrid
 numpy
+pydantic
+python-jose[cryptography]
+bcrypt
+pydantic[email]
+passlib

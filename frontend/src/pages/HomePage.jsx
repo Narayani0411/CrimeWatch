@@ -1,33 +1,18 @@
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 
 const HomePage = () => {
   return (
-    // The container uses min-h-screen to take up the full viewport height 
-    // and flex classes to center content both horizontally (items-center) 
-    // and vertically (justify-center).
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
-      
-      {/* Title */}
-      <h1 className="text-5xl font-extrabold text-indigo-800 mb-10 text-center">
-        Security System Access
-      </h1>
+    <div className="flex flex-col items-center justify-center min-h-screen fade-in text-center">
+      <h1 className="text-5xl font-extrabold mb-8 tracking-tight">CrimeWatch</h1>
+      <p className="text-lg text-gray-500 mb-12 max-w-md">
+        Welcome to our smart security monitoring dashboard. Please sign in or sign up to continue.
+      </p>
 
-      {/* Button Container */}
-      <div className="flex flex-col space-y-6 sm:flex-row sm:space-x-8 sm:space-y-0">
-        
-        {/* Sign In Button */}
-        <Link 
-          to="/signin" 
-          className="w-64 py-4 px-10 text-center bg-indigo-600 text-white text-xl font-semibold rounded-xl shadow-2xl transition duration-300 hover:bg-indigo-700 transform hover:scale-105"
-        >
+      <div className="flex flex-col sm:flex-row sm:space-x-8 space-y-4 sm:space-y-0">
+        <Link to="/signin" className="btn text-lg shadow-lg">
           🔑 Sign In
         </Link>
-        
-        {/* Sign Up Button */}
-        <Link 
-          to="/signup" 
-          className="w-64 py-4 px-10 text-center border-4 border-indigo-600 text-indigo-600 text-xl font-semibold rounded-xl shadow-2xl transition duration-300 hover:bg-indigo-100 transform hover:scale-105"
-        >
+        <Link to="/signup" className="btn text-lg shadow-lg">
           📝 Sign Up
         </Link>
       </div>

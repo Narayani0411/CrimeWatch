@@ -2,3 +2,8 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* smooth font rendering */
+html {
+  scroll-behavior: smooth;
+}

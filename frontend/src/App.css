@@ -1,42 +1,144 @@
+/* ===== THEME COLORS ===== */
+:root {
+  --bg-color: #f8fafc;
+  --text-color: #1a1a1a;
+  --card-bg: #ffffff;
+  --accent: #b3c5ff;
+  --accent-hover: #98b0ff;
+  --link-color: #6d83f2;
+  --link-hover: #4b63d2;
+  --input-bg: #f2f4f7;
+  --border-color: #d4d4d4;
+}
+
+.dark {
+  --bg-color: #15151f;
+  --text-color: #f5f5f5;
+  --card-bg: #20202b;
+  --accent: #7984ff;
+  --accent-hover: #636cff;
+  --link-color: #a5b4fc;
+  --link-hover: #c7d2fe;
+  --input-bg: #2b2b38;
+  --border-color: #3b3b4a;
+}
+
+/* ===== GLOBAL STYLES ===== */
+html, body {
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'Inter', system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.4s, color 0.4s;
+  scroll-behavior: smooth;
+}
+
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  min-height: 100vh;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* ===== NAVBAR ===== */
+.navbar {
+  background: var(--card-bg);
+  border-bottom: 2px solid var(--accent);
+  backdrop-filter: blur(10px);
+  transition: background-color 0.4s, border-color 0.4s;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.nav-link {
+  color: var(--text-color);
+  transition: color 0.3s, transform 0.2s;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.nav-link:hover {
+  color: var(--link-hover);
+  transform: translateY(-2px);
 }
 
+/* ===== THEME BUTTON ===== */
+.theme-btn {
+  background: var(--accent);
+  color: var(--text-color);
+  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: background-color 0.3s, transform 0.2s;
+}
+
+.theme-btn:hover {
+  background: var(--accent-hover);
+  transform: scale(1.05);
+}
+
+/* ===== PAGE CONTAINER ===== */
+.content-container {
+  background: var(--bg-color);
+  transition: background 0.4s, color 0.4s;
+  animation: fadeIn 0.8s ease-out;
+}
+
+/* ===== REUSABLE CARD ===== */
 .card {
-  padding: 2em;
+  background: var(--card-bg);
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+  padding: 2.5rem;
+  transition: all 0.4s ease;
 }
 
-.read-the-docs {
-  color: #888;
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.12);
+}
+
+/* ===== INPUTS ===== */
+input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.6rem;
+  color: var(--text-color);
+  transition: all 0.3s;
+  font-size: 1rem;
+}
+
+input:focus {
+  border-color: var(--link-hover);
+  box-shadow: 0 0 6px var(--accent);
+  outline: none;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+  background: var(--accent);
+  color: var(--text-color);
+  font-weight: 600;
+  border: none;
+  padding: 0.9rem 1.6rem;
+  border-radius: 0.8rem;
+  transition: background 0.3s, transform 0.2s;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.btn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+}
+
+/* ===== ANIMATION ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hide built-in browser password reveal button (Edge / Chrome) */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
 }

@@ -1,36 +1,28 @@
-import React, { useState } from 'react';
-import WebcamFeed from '../components/WebcamFeed';
+import React, { useState } from "react";
+import WebcamFeed from "../components/WebcamFeed";
+import { Eye, EyeOff } from "lucide-react";
 
 const DashboardPage = () => {
-  const [isStreaming, setIsStreaming] = useState(false); // Start as false by default
-
-  const toggleStream = () => {
-    setIsStreaming(!isStreaming);
-  };
+  const [isStreaming, setIsStreaming] = useState(false);
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">Dashboard 👁️</h1>
+    <div className="fade-in flex flex-col items-center">
+      <h1 className="text-3xl font-bold mb-6">Dashboard 👁️</h1>
 
-      {/* Control Buttons */}
-      <div className="mb-6">
-        <button
-          onClick={toggleStream}
-          className={`py-2 px-6 rounded-lg font-semibold transition duration-200 ${
-            isStreaming
-              ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg'
-              : 'bg-green-600 hover:bg-green-700 text-white shadow-lg'
-          }`}
-        >
-          {isStreaming ? '🛑 Stop Video' : '▶️ Start Video'}
-        </button>
-        <p className="mt-2 text-sm text-gray-500">
-            {isStreaming ? 'Streaming is active.' : 'Video is currently stopped.'}
-        </p>
+      <button
+        onClick={() => setIsStreaming(!isStreaming)}
+        className="btn text-white px-8 py-3 shadow-md"
+      >
+        {isStreaming ? "🛑 Stop Video" : "▶️ Start Video"}
+      </button>
+
+      <p className="mt-4 text-sm opacity-70">
+        {isStreaming ? "Streaming is active." : "Video is currently stopped."}
+      </p>
+
+      <div className="card mt-8 w-full max-w-3xl">
+        <WebcamFeed isStreaming={isStreaming} />
       </div>
-
-      <WebcamFeed isStreaming={isStreaming} />
-
     </div>
   );
 };
